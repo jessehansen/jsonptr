@@ -136,6 +136,24 @@ func TestSetDashArray(t *testing.T) {
 	assert.Equal(t, "300", n4[1])
 }
 
+func TestForceEmptyDoc(t *testing.T) {
+	res := doForce(t, "/foo/bar/baz", "{}", "value")
+	n1 := res.(map[string]interface{})
+	n2 := n1["foo"].(map[string]interface{})
+	n3 := n2["bar"].(map[string]interface{})
+	assert.Equal(t, "value", n3["baz"])
+}
+
+func TestForceWithArrayInTheMiddle(t *testing.T) {
+	res := doForce(t, "/foo/-/bar/baz", `{"foo":[]}`, "value")
+	n1 := res.(map[string]interface{})
+	n2 := n1["foo"].([]interface{})
+	assert.Equal(t, 1, len(n2))
+	n3 := n2[0].(map[string]interface{})
+	n4 := n3["bar"].(map[string]interface{})
+	assert.Equal(t, "value", n4["baz"])
+}
+
 func assertPointerEvaluatesTo(t *testing.T, pointer string, doc interface{}, expected interface{}) {
 	ptr, err := New(pointer)
 	assert.Nil(t, err, "Pointer construction error")
@@ -179,6 +197,21 @@ func doSet(t *testing.T, pointer string, str string, val interface{}) interface{
 		return nil
 	}
 	err = ptr.Set(&doc, val)
+	assert.Nil(t, err, "Pointer evaluation error")
+	return doc
+}
+
+func doForce(t *testing.T, pointer string, str string, val interface{}) interface{} {
+	var doc interface{}
+	json.Unmarshal([]byte(str), &doc)
+
+	ptr, err := New(pointer)
+	assert.Nil(t, err, "Pointer construction error")
+	assert.NotNil(t, ptr, "Pointer construction returned no instance")
+	if ptr == nil {
+		return nil
+	}
+	err = ptr.Force(&doc, val)
 	assert.Nil(t, err, "Pointer evaluation error")
 	return doc
 }

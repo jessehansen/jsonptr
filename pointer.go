@@ -69,20 +69,33 @@ func (p *Pointer) Get(document interface{}) (interface{}, error) {
 }
 
 func (p *Pointer) Set(document *interface{}, val interface{}) error {
+	return set(p.path, document, val, false)
+}
+
+func (p *Pointer) Force(document *interface{}, val interface{}) error {
+	return set(p.path, document, val, true)
+}
+
+func set(path []string, document *interface{}, val interface{}, force bool) error {
 	node := *document
-	if len(p.path) == 0 {
+	if len(path) == 0 {
 		*document = val
 		return nil
 	}
 
-	for i, seg := range p.path {
-		isLast := i == len(p.path)-1
+	for i, seg := range path {
+		isLast := i == len(path)-1
 		switch v := node.(type) {
 		case map[string]interface{}:
 			n, ok := v[seg]
 			if !ok {
 				if !isLast {
-					return fmt.Errorf("Map had no key when evaluating path segment '%s'", seg)
+					if force {
+						n = map[string]interface{}{}
+						v[seg] = n
+					} else {
+						return fmt.Errorf("Map had no key when evaluating path segment '%s'", seg)
+					}
 				}
 			}
 			node = n
@@ -94,22 +107,42 @@ func (p *Pointer) Set(document *interface{}, val interface{}) error {
 		case []interface{}:
 			if seg == "-" {
 				if !isLast {
-					return fmt.Errorf("Cannot return '%s' index from JSON array", seg)
+					if force {
+						node = map[string]interface{}{}
+						if err := set(path[:i], document, append(v, node), false); err != nil {
+							return err
+						}
+						continue
+					} else {
+						return fmt.Errorf("Cannot append to JSON array when not forcing")
+					}
+				} else {
+					return set(path[:i], document, append(v, val), false) // set the immediate parent to the appended slice
 				}
-				return (&Pointer{p.path[:i]}).Set(document, append(v, val)) // set the immediate parent to the appended slice
 			}
 			i, err := strconv.Atoi(seg)
 			if err != nil {
 				return fmt.Errorf("Could not index when evaluating path segment '%s': %v", seg, err)
 			}
-			if i < 0 || i > len(v)-1 {
+			if i < 0 || (!force && i > len(v)-1) {
 				return fmt.Errorf("Slice index %d is out of range (slice len=%d): %v", i, len(v), err)
 			}
-			node = v[i]
+			if force && i > len(v)-1 {
+				sl := make([]interface{}, i+1, i+1)
+				copy(sl, v)
+				if !isLast {
+					v[i] = map[string]interface{}{}
+				}
+				v = sl
+				if err := set(path[:i], document, sl, false); err != nil {
+					return err
+				}
+			}
 			if isLast {
 				v[i] = val
 				return nil
 			}
+			node = v[i]
 			break
 		default:
 			return fmt.Errorf("Unsupported node type %T when evaluating path segment '%s'", node)
