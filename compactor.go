@@ -5,7 +5,7 @@ import (
 )
 
 type Compactor struct {
-	CheckCycles, OmitNonLeaf, URIFragment bool
+	AllNodes, URIFragment bool
 }
 
 type PointerValue struct {
@@ -61,11 +61,7 @@ func (c *Compactor) visit(target interface{}, visit visitor) {
 	q[0] = qnode{target, []string{}}
 	qcursor := 0
 
-	var distinctObjects *refset
-	if c.CheckCycles {
-		distinctObjects = &refset{}
-	}
-	if !c.OmitNonLeaf || !canVisitChildren(target) {
+	if c.AllNodes || !canVisitChildren(target) {
 		visit([]string{}, target)
 	}
 	for qcursor < len(q) {
@@ -76,17 +72,8 @@ func (c *Compactor) visit(target interface{}, visit visitor) {
 			for j, it := range v {
 				path := childpath(cursor.path, strconv.Itoa(j))
 				if canVisitChildren(it) {
-					if c.CheckCycles && distinctObjects.has(it) {
-						if !c.OmitNonLeaf {
-							visit(path, JsonReference{distinctObjects.get(it)})
-						}
-						continue
-					}
 					q = append(q, qnode{it, path})
-					if c.CheckCycles {
-						distinctObjects.set(it, Pointer{path})
-					}
-					if c.OmitNonLeaf {
+					if !c.AllNodes {
 						continue
 					}
 				}
@@ -96,17 +83,8 @@ func (c *Compactor) visit(target interface{}, visit visitor) {
 			for key, it := range v {
 				path := childpath(cursor.path, key)
 				if canVisitChildren(it) {
-					if c.CheckCycles && distinctObjects.has(it) {
-						if !c.OmitNonLeaf {
-							visit(path, JsonReference{distinctObjects.get(it)})
-						}
-						continue
-					}
 					q = append(q, qnode{it, path})
-					if c.CheckCycles {
-						distinctObjects.set(it, Pointer{path})
-					}
-					if c.OmitNonLeaf {
+					if !c.AllNodes {
 						continue
 					}
 				}

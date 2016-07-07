@@ -2,6 +2,7 @@ package jsonptr
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -24,7 +25,8 @@ const (
     "bar": {
       "baz": ["100"]
     }
-  }
+  },
+  "item": "value"
 }`
 )
 
@@ -229,10 +231,10 @@ func doForce(t *testing.T, pointer string, str string, val interface{}) interfac
 	return doc
 }
 
-func BenchmarkShallow(b *testing.B) {
+func BenchmarkShallowGet(b *testing.B) {
 	var doc interface{}
-	json.Unmarshal([]byte(RfcDoc), &doc)
-	ptr := MustConstruct("#/ ")
+	json.Unmarshal([]byte(DeepDoc), &doc)
+	ptr := MustConstruct("/item")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -240,7 +242,7 @@ func BenchmarkShallow(b *testing.B) {
 	}
 }
 
-func BenchmarkDeep(b *testing.B) {
+func BenchmarkDeepGet(b *testing.B) {
 	var doc interface{}
 	json.Unmarshal([]byte(DeepDoc), &doc)
 	ptr := MustConstruct("/foo/bar/baz/0")
@@ -248,5 +250,75 @@ func BenchmarkDeep(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		ptr.Get(doc)
+	}
+}
+
+func BenchmarkShallowExists(b *testing.B) {
+	var doc interface{}
+	json.Unmarshal([]byte(DeepDoc), &doc)
+	ptr1 := MustConstruct("/item")
+	ptr2 := MustConstruct("/missing")
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		ptr1.Exists(doc)
+		ptr2.Exists(doc)
+	}
+}
+
+func BenchmarkDeepExists(b *testing.B) {
+	var doc interface{}
+	json.Unmarshal([]byte(DeepDoc), &doc)
+	ptr1 := MustConstruct("/foo/bar/baz/0")
+	ptr2 := MustConstruct("/foo/bar/baz/7")
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		ptr1.Exists(doc)
+		ptr2.Exists(doc)
+	}
+}
+
+func BenchmarkShallowSet(b *testing.B) {
+	var doc interface{}
+	json.Unmarshal([]byte(DeepDoc), &doc)
+	ptr := MustConstruct("/item")
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		ptr.Set(doc, "someval")
+	}
+}
+
+func BenchmarkDeepSet(b *testing.B) {
+	var doc interface{}
+	json.Unmarshal([]byte(DeepDoc), &doc)
+	ptr := MustConstruct("/foo/bar/baz/0")
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		ptr.Set(doc, "someval")
+	}
+}
+
+func BenchmarkShallowForce(b *testing.B) {
+	var doc interface{}
+	json.Unmarshal([]byte(DeepDoc), &doc)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		ptr := MustConstruct(fmt.Sprintf("/item%d", i))
+		ptr.Set(doc, "someval")
+	}
+}
+
+func BenchmarkDeepForce(b *testing.B) {
+	var doc interface{}
+	json.Unmarshal([]byte(DeepDoc), &doc)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		ptr := MustConstruct(fmt.Sprintf("/foo%d/bar%d/item%d", i, i, i))
+		ptr.Set(doc, "someval")
 	}
 }

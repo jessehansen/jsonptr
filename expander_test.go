@@ -80,3 +80,17 @@ func TestExpandDetectArrays(t *testing.T) {
 	assert.Nil(t, arr[4])
 	assert.Equal(t, testValues["/arr/5"], arr[5])
 }
+
+func BenchmarkExpandDefaults(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		Expand(testValues)
+	}
+}
+
+func BenchmarkExpandDetectArrays(b *testing.B) {
+	e := &Expander{DetectArrays: true}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		e.Expand(testValues)
+	}
+}

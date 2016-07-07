@@ -57,10 +57,10 @@ var fragmentLeafKeys = []string{
 }
 
 func TestFlatten(t *testing.T) {
-	assertFlattenProducesKeys(t, &Compactor{OmitNonLeaf: false, URIFragment: false}, pointerKeys)
-	assertFlattenProducesKeys(t, &Compactor{OmitNonLeaf: true, URIFragment: false}, pointerLeafKeys)
-	assertFlattenProducesKeys(t, &Compactor{OmitNonLeaf: false, URIFragment: true}, fragmentKeys)
-	assertFlattenProducesKeys(t, &Compactor{OmitNonLeaf: true, URIFragment: true}, fragmentLeafKeys)
+	assertFlattenProducesKeys(t, &Compactor{AllNodes: false, URIFragment: false}, pointerLeafKeys)
+	assertFlattenProducesKeys(t, &Compactor{AllNodes: true, URIFragment: false}, pointerKeys)
+	assertFlattenProducesKeys(t, &Compactor{AllNodes: false, URIFragment: true}, fragmentLeafKeys)
+	assertFlattenProducesKeys(t, &Compactor{AllNodes: true, URIFragment: true}, fragmentKeys)
 }
 
 func assertFlattenProducesKeys(t *testing.T, c *Compactor, keys []string) {
@@ -73,5 +73,34 @@ func assertFlattenProducesKeys(t *testing.T, c *Compactor, keys []string) {
 	for _, k := range keys {
 		_, ok := result[k]
 		assert.True(t, ok, "Expected: %s", k)
+	}
+}
+
+func BenchmarkFlattenDefaults(b *testing.B) {
+	var sampleDoc map[string]interface{}
+	json.Unmarshal([]byte(SampleDoc), &sampleDoc)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		Flatten(sampleDoc)
+	}
+}
+
+func BenchmarkFlattenAllNodes(b *testing.B) {
+	c := &Compactor{AllNodes: true}
+	var sampleDoc map[string]interface{}
+	json.Unmarshal([]byte(SampleDoc), &sampleDoc)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		c.Flatten(sampleDoc)
+	}
+}
+
+func BenchmarkFlattenURIFragment(b *testing.B) {
+	c := &Compactor{URIFragment: true}
+	var sampleDoc map[string]interface{}
+	json.Unmarshal([]byte(SampleDoc), &sampleDoc)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		c.Flatten(sampleDoc)
 	}
 }
