@@ -28,6 +28,32 @@ const (
 }`
 )
 
+func makePointer(path []string) *Pointer {
+	return &Pointer{path}
+}
+
+func TestString(t *testing.T) {
+	assert.Equal(t, "", makePointer([]string{}).String())
+	assert.Equal(t, "/", makePointer([]string{""}).String())
+	assert.Equal(t, "//", makePointer([]string{"", ""}).String())
+	assert.Equal(t, "/foo/bar", makePointer([]string{"foo", "bar"}).String())
+	assert.Equal(t, "/m~0n", makePointer([]string{"m~n"}).String())
+	assert.Equal(t, "/~01", makePointer([]string{"~1"}).String())
+	assert.Equal(t, "/~1", makePointer([]string{"/"}).String())
+}
+
+func TestURIFragmentIdent(t *testing.T) {
+	assert.Equal(t, "#", makePointer([]string{}).URIFragmentIdent())
+	assert.Equal(t, "#/", makePointer([]string{""}).URIFragmentIdent())
+	assert.Equal(t, "#//", makePointer([]string{"", ""}).URIFragmentIdent())
+	assert.Equal(t, "#/foo/bar", makePointer([]string{"foo", "bar"}).URIFragmentIdent())
+	assert.Equal(t, "#/m~0n", makePointer([]string{"m~n"}).URIFragmentIdent())
+	assert.Equal(t, "#/~01", makePointer([]string{"~1"}).URIFragmentIdent())
+	assert.Equal(t, "#/~1", makePointer([]string{"/"}).URIFragmentIdent())
+	assert.Equal(t, "#/with+space", makePointer([]string{"with space"}).URIFragmentIdent())
+	assert.Equal(t, "#/with%5Ecarat", makePointer([]string{"with^carat"}).URIFragmentIdent())
+}
+
 // From RFC 6901:
 // The following JSON strings evaluate to the accompanying values:
 //  ""           // the whole document
@@ -100,11 +126,6 @@ func TestGetRfcFragmentCases(t *testing.T) {
 	assertPointerEvaluatesTo(t, "#/m~0n", rfcDocument, 8)
 }
 
-func TestSetRoot(t *testing.T) {
-	res := doSet(t, "", DeepDoc, "other")
-	assert.Equal(t, "other", res)
-}
-
 func TestSetEscaping(t *testing.T) {
 	assertSetWorks(t, "#/a~1b")
 	assertSetWorks(t, "#/c%25d")
@@ -134,14 +155,6 @@ func TestSetDashArray(t *testing.T) {
 	n4 := n3["baz"].([]interface{})
 	assert.Equal(t, 2, len(n4))
 	assert.Equal(t, "300", n4[1])
-}
-
-func TestForceEmptyDoc(t *testing.T) {
-	res := doForce(t, "/foo/bar/baz", "{}", "value")
-	n1 := res.(map[string]interface{})
-	n2 := n1["foo"].(map[string]interface{})
-	n3 := n2["bar"].(map[string]interface{})
-	assert.Equal(t, "value", n3["baz"])
 }
 
 func TestForceWithArrayInTheMiddle(t *testing.T) {
@@ -178,7 +191,7 @@ func assertSetWorks(t *testing.T, pointer string) {
 	var doc interface{}
 	json.Unmarshal([]byte(RfcDoc), &doc)
 
-	err = ptr.Set(&doc, "some value")
+	err = ptr.Set(doc, "some value")
 	assert.Nil(t, err, "Pointer evaluation error")
 
 	actual, _ := ptr.Get(doc)
@@ -196,7 +209,7 @@ func doSet(t *testing.T, pointer string, str string, val interface{}) interface{
 	if ptr == nil {
 		return nil
 	}
-	err = ptr.Set(&doc, val)
+	err = ptr.Set(doc, val)
 	assert.Nil(t, err, "Pointer evaluation error")
 	return doc
 }
@@ -211,7 +224,29 @@ func doForce(t *testing.T, pointer string, str string, val interface{}) interfac
 	if ptr == nil {
 		return nil
 	}
-	err = ptr.Force(&doc, val)
+	err = ptr.Force(doc, val)
 	assert.Nil(t, err, "Pointer evaluation error")
 	return doc
+}
+
+func BenchmarkShallow(b *testing.B) {
+	var doc interface{}
+	json.Unmarshal([]byte(RfcDoc), &doc)
+	ptr := MustConstruct("#/ ")
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		ptr.Get(doc)
+	}
+}
+
+func BenchmarkDeep(b *testing.B) {
+	var doc interface{}
+	json.Unmarshal([]byte(DeepDoc), &doc)
+	ptr := MustConstruct("/foo/bar/baz/0")
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		ptr.Get(doc)
+	}
 }

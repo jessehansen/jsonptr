@@ -68,19 +68,18 @@ func (p *Pointer) Get(document interface{}) (interface{}, error) {
 	return node, nil
 }
 
-func (p *Pointer) Set(document *interface{}, val interface{}) error {
+func (p *Pointer) Set(document interface{}, val interface{}) error {
 	return set(p.path, document, val, false)
 }
 
-func (p *Pointer) Force(document *interface{}, val interface{}) error {
+func (p *Pointer) Force(document interface{}, val interface{}) error {
 	return set(p.path, document, val, true)
 }
 
-func set(path []string, document *interface{}, val interface{}, force bool) error {
-	node := *document
+func set(path []string, document interface{}, val interface{}, force bool) error {
+	node := document
 	if len(path) == 0 {
-		*document = val
-		return nil
+		return fmt.Errorf("Cannot set root object, set it directly instead")
 	}
 
 	for i, seg := range path {
@@ -187,6 +186,9 @@ func (p *Pointer) Path() []string {
 }
 
 func (p *Pointer) String() string {
+	if len(p.path) == 0 {
+		return ""
+	}
 	segments := make([]string, len(p.path))
 	copy(segments, p.path)
 	for i, seg := range segments {
@@ -196,12 +198,15 @@ func (p *Pointer) String() string {
 }
 
 func (p *Pointer) URIFragmentIdent() string {
+	if len(p.path) == 0 {
+		return "#"
+	}
 	segments := make([]string, len(p.path))
 	copy(segments, p.path)
 	for i, seg := range segments {
-		segments[i] = strings.Replace(strings.Replace(url.QueryEscape(seg), "~", "~0", -1), "/", "~1", -1)
+		segments[i] = url.QueryEscape(strings.Replace(strings.Replace(seg, "~", "~0", -1), "/", "~1", -1))
 	}
-	return fmt.Sprintf("/%s", strings.Join(segments, "/"))
+	return fmt.Sprintf("#/%s", strings.Join(segments, "/"))
 }
 
 func looksLikeURIFragment(ptr string) bool {
