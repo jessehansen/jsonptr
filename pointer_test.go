@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"io/ioutil"
 	"testing"
 )
 
@@ -231,9 +232,59 @@ func doForce(t *testing.T, pointer string, str string, val interface{}) interfac
 	return doc
 }
 
-func BenchmarkShallowGet(b *testing.B) {
+func ExamplePointer_Get() {
 	var doc interface{}
-	json.Unmarshal([]byte(DeepDoc), &doc)
+	json.Unmarshal([]byte(`{"hello":"world"}`), &doc)
+
+	ptr1, _ := New("/hello")
+	hello, err := ptr1.Get(doc)
+
+	fmt.Printf("%v %s", err == nil, hello)
+	// Output: true world
+}
+
+func ExamplePointer_Set() {
+	var doc interface{}
+	json.Unmarshal([]byte(`{"hello":"world"}`), &doc)
+
+	ptr1, _ := New("/foo/bar")
+	e1 := ptr1.Set(doc, "baz")
+
+	ptr2, _ := New("/foo")
+	e2 := ptr2.Set(doc, "bar")
+
+	out, _ := json.Marshal(doc)
+	fmt.Printf("%v %v %s", e1 == nil, e2 == nil, string(out))
+	// Output: false true {"foo":"bar","hello":"world"}
+}
+
+func ExamplePointer_Force() {
+	var doc interface{}
+	json.Unmarshal([]byte(`{"hello":"world"}`), &doc)
+
+	ptr, _ := New("/foo/bar")
+	err := ptr.Force(doc, "baz")
+
+	out, _ := json.Marshal(doc)
+	fmt.Printf("%v %s", err == nil, string(out))
+	// Output: true {"foo":{"bar":"baz"},"hello":"world"}
+}
+
+func getZips() interface{} {
+	zips, err := ioutil.ReadFile("zips.json")
+	if err != nil {
+		panic(err)
+	}
+	var doc interface{}
+	err = json.Unmarshal(zips, &doc)
+	if err != nil {
+		panic(err)
+	}
+	return doc
+}
+
+func BenchmarkShallowGet(b *testing.B) {
+	doc := getZips()
 	ptr := MustConstruct("/item")
 
 	b.ResetTimer()
@@ -243,8 +294,7 @@ func BenchmarkShallowGet(b *testing.B) {
 }
 
 func BenchmarkDeepGet(b *testing.B) {
-	var doc interface{}
-	json.Unmarshal([]byte(DeepDoc), &doc)
+	doc := getZips()
 	ptr := MustConstruct("/foo/bar/baz/0")
 
 	b.ResetTimer()
@@ -254,8 +304,7 @@ func BenchmarkDeepGet(b *testing.B) {
 }
 
 func BenchmarkShallowExists(b *testing.B) {
-	var doc interface{}
-	json.Unmarshal([]byte(DeepDoc), &doc)
+	doc := getZips()
 	ptr1 := MustConstruct("/item")
 	ptr2 := MustConstruct("/missing")
 
@@ -267,8 +316,7 @@ func BenchmarkShallowExists(b *testing.B) {
 }
 
 func BenchmarkDeepExists(b *testing.B) {
-	var doc interface{}
-	json.Unmarshal([]byte(DeepDoc), &doc)
+	doc := getZips()
 	ptr1 := MustConstruct("/foo/bar/baz/0")
 	ptr2 := MustConstruct("/foo/bar/baz/7")
 
@@ -280,8 +328,7 @@ func BenchmarkDeepExists(b *testing.B) {
 }
 
 func BenchmarkShallowSet(b *testing.B) {
-	var doc interface{}
-	json.Unmarshal([]byte(DeepDoc), &doc)
+	doc := getZips()
 	ptr := MustConstruct("/item")
 
 	b.ResetTimer()
@@ -291,8 +338,7 @@ func BenchmarkShallowSet(b *testing.B) {
 }
 
 func BenchmarkDeepSet(b *testing.B) {
-	var doc interface{}
-	json.Unmarshal([]byte(DeepDoc), &doc)
+	doc := getZips()
 	ptr := MustConstruct("/foo/bar/baz/0")
 
 	b.ResetTimer()
@@ -302,8 +348,7 @@ func BenchmarkDeepSet(b *testing.B) {
 }
 
 func BenchmarkShallowForce(b *testing.B) {
-	var doc interface{}
-	json.Unmarshal([]byte(DeepDoc), &doc)
+	doc := getZips()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -313,8 +358,7 @@ func BenchmarkShallowForce(b *testing.B) {
 }
 
 func BenchmarkDeepForce(b *testing.B) {
-	var doc interface{}
-	json.Unmarshal([]byte(DeepDoc), &doc)
+	doc := getZips()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

@@ -77,30 +77,27 @@ func assertFlattenProducesKeys(t *testing.T, c *Compactor, keys []string) {
 }
 
 func BenchmarkFlattenDefaults(b *testing.B) {
-	var sampleDoc map[string]interface{}
-	json.Unmarshal([]byte(SampleDoc), &sampleDoc)
+	doc := getZips()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Flatten(sampleDoc)
+		Flatten(doc)
 	}
 }
 
 func BenchmarkFlattenAllNodes(b *testing.B) {
 	c := &Compactor{AllNodes: true}
-	var sampleDoc map[string]interface{}
-	json.Unmarshal([]byte(SampleDoc), &sampleDoc)
+	doc := getZips()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		c.Flatten(sampleDoc)
+		c.Flatten(doc)
 	}
 }
 
 func BenchmarkFlattenURIFragment(b *testing.B) {
 	c := &Compactor{URIFragment: true}
-	var sampleDoc map[string]interface{}
-	json.Unmarshal([]byte(SampleDoc), &sampleDoc)
+	doc := getZips()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		c.Flatten(sampleDoc)
+		c.Flatten(doc)
 	}
 }

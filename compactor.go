@@ -4,15 +4,33 @@ import (
 	"strconv"
 )
 
+// Compactor contains customizable options for how a document can be compacted.
+//
+// When AllNodes is false, then only the leaf nodes of the document are
+// returned true, then all nodes are returned in the result.
+//
+// When URIFragment is true, then the keys in Flatten's resulting
+// map[string]interface{} are RFC 6901 URL Fragment Identifiers.
 type Compactor struct {
 	AllNodes, URIFragment bool
 }
 
+// PointerValue represents a pointer and it's value. A slice of pointer values
+// is returned from Compactor.List
 type PointerValue struct {
 	Pointer Pointer
 	Value   interface{}
 }
 
+/*
+Flatten compacts the provided json document into a map[string]interface{},
+with all keys at the root level.
+
+    // Given doc is unmarshalled from { "foo": { "bar": ["baz"] } }
+    c := &jsonptr.Compactor{AllNodes: false, URIFragment: false}
+    res := c.Flatten(doc)
+    // res would be { "/foo/bar/0": "baz" }
+*/
 func (c *Compactor) Flatten(document interface{}) map[string]interface{} {
 	res := map[string]interface{}{}
 	var v visitor
@@ -31,22 +49,22 @@ func (c *Compactor) Flatten(document interface{}) map[string]interface{} {
 	return res
 }
 
+/*
+List compacts the provided json document into a slice of PointerValues
+
+    // Given doc is unmarshalled from { "foo": { "bar": ["baz"] } }
+    c := &jsonptr.Compactor{AllNodes: false, URIFragment: false}
+    res := c.List(doc)
+    // len(res) == 1
+    // res[0].Pointer.String() == "/foo/bar/0"
+    // res[0].Value == "baz"
+*/
 func (c *Compactor) List(document interface{}) []PointerValue {
 	res := make([]PointerValue, 0, 8)
 	c.visit(document, func(path []string, val interface{}) {
 		res = append(res, PointerValue{Pointer{path}, val})
 	})
 	return res
-}
-
-func Flatten(target interface{}) map[string]interface{} {
-	c := &Compactor{}
-	return c.Flatten(target)
-}
-
-func List(target interface{}) []PointerValue {
-	c := &Compactor{}
-	return c.List(target)
 }
 
 type visitor func([]string, interface{})

@@ -5,15 +5,16 @@ import (
 	"strconv"
 )
 
+// Expander contains customizable options for how a document can be expanded.
+//
+// When DetectArrays is true, then resulting nodes with only "0" or positive
+// integer keys are made into []interface{} types, rather than
+// map[string]interface.
 type Expander struct {
 	DetectArrays bool
 }
 
-func Expand(values map[string]interface{}) (interface{}, error) {
-	e := &Expander{}
-	return e.Expand(values)
-}
-
+// Expand expands a map with keys containing json pointers into a full json.Marshal-able document
 func (e *Expander) Expand(values map[string]interface{}) (interface{}, error) {
 	result := map[string]interface{}{}
 	for k, v := range values {
@@ -45,7 +46,7 @@ func detectArrays(target map[string]interface{}) interface{} {
 			copy(sl, slice)
 			slice = sl
 		}
-		if err != nil {
+		if err != nil || i < 0 {
 			allInts = false
 		} else {
 			slice[i] = val

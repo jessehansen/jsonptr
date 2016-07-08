@@ -7,10 +7,12 @@ import (
 	"strings"
 )
 
+// Pointer represents a JSON Pointer
 type Pointer struct {
 	path []string
 }
 
+// New returns a new JSON Pointer from the given string. The string can be a pointer, or a URI Fragment encoded pointer.
 func New(ptr string) (*Pointer, error) {
 	var path []string
 	if looksLikeURIFragment(ptr) {
@@ -29,6 +31,7 @@ func New(ptr string) (*Pointer, error) {
 	return &Pointer{path}, nil
 }
 
+// MustConstruct returns a new JSON Pointer from the given string, or panics if the pointer is not valid, like regexp.MustCompile.
 func MustConstruct(ptr string) *Pointer {
 	p, err := New(ptr)
 	if err != nil {
@@ -37,6 +40,7 @@ func MustConstruct(ptr string) *Pointer {
 	return p
 }
 
+// Get returns the value for the specified location in the document.
 func (p *Pointer) Get(document interface{}) (interface{}, error) {
 	node := document
 	for _, seg := range p.path {
@@ -68,10 +72,33 @@ func (p *Pointer) Get(document interface{}) (interface{}, error) {
 	return node, nil
 }
 
+/*
+Set sets the specified location in the document to the provided value,
+returning an error if the value cannot be set. Set requires all segments in
+the path to exist except for the final segment, and returns an error if
+they do not.
+
+Set cannot set the root pointer ("")
+
+Set will return an error if it encounters a node in the path that is not of the
+type map[string]interface{} or []interface{}, or if it cannot index into an
+array with the provided path segment.
+*/
 func (p *Pointer) Set(document interface{}, val interface{}) error {
 	return set(p.path, document, val, false)
 }
 
+/*
+Force sets the specified location in the document to the provided value,
+returning an error if the value cannot be set. Force will create new
+map[string]interface{} for segments that do not exist in the document
+
+Force cannot set the root pointer ("")
+
+Force will return an error if it encounters a node in the path that is not of the
+type map[string]interface{} or []interface{}, or if it cannot index into an
+array with the provided path segment.
+*/
 func (p *Pointer) Force(document interface{}, val interface{}) error {
 	return set(p.path, document, val, true)
 }
@@ -150,6 +177,8 @@ func set(path []string, document interface{}, val interface{}, force bool) error
 	return fmt.Errorf("Could not set value in path")
 }
 
+// Exists returns a boolean indicating whether the pointer location exists in
+// the provided document.
 func (p *Pointer) Exists(document interface{}) bool {
 	node := document
 	for _, seg := range p.path {
@@ -181,10 +210,12 @@ func (p *Pointer) Exists(document interface{}) bool {
 	return true
 }
 
+// Path returns the path segments of the pointer, as a slice of strings.
 func (p *Pointer) Path() []string {
 	return p.path
 }
 
+// String returns the RFC 6901 string representation of the JSON pointer
 func (p *Pointer) String() string {
 	if len(p.path) == 0 {
 		return ""
@@ -197,6 +228,7 @@ func (p *Pointer) String() string {
 	return fmt.Sprintf("/%s", strings.Join(segments, "/"))
 }
 
+// URIFragmentIdent returns the RFC 6901 URI Fragment representation of the JSON pointer
 func (p *Pointer) URIFragmentIdent() string {
 	if len(p.path) == 0 {
 		return "#"
