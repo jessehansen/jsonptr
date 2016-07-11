@@ -9,6 +9,33 @@ func Get(document interface{}, ptr string) (interface{}, error) {
 	return p.Get(document)
 }
 
+// GetBool returns the value for the specified location in the document as a string, or false if not accessible.
+func GetBool(document interface{}, ptr string) bool {
+	p, err := New(ptr)
+	if err != nil {
+		return false
+	}
+	return p.GetBool(document)
+}
+
+// GetString returns the value for the specified location in the document as a string, or an empty string if not accessible.
+func GetString(document interface{}, ptr string) string {
+	p, err := New(ptr)
+	if err != nil {
+		return ""
+	}
+	return p.GetString(document)
+}
+
+// GetNumber returns the value for the specified location in the document as a string, or 0 if not accessible.
+func GetNumber(document interface{}, ptr string) float64 {
+	p, err := New(ptr)
+	if err != nil {
+		return 0
+	}
+	return p.GetNumber(document)
+}
+
 // Has returns a boolean indicating whether the pointer location exists in
 // the provided document.
 func Has(document interface{}, ptr string) bool {

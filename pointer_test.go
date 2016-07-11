@@ -29,6 +29,11 @@ const (
   },
   "item": "value"
 }`
+	TypeDoc = `{
+	"string": "string",
+	"number": 1.2,
+	"bool": true
+}`
 )
 
 func makePointer(path []string) *Pointer {
@@ -170,66 +175,34 @@ func TestForceWithArrayInTheMiddle(t *testing.T) {
 	assert.Equal(t, "value", n4["baz"])
 }
 
-func assertPointerEvaluatesTo(t *testing.T, pointer string, doc interface{}, expected interface{}) {
-	ptr, err := New(pointer)
-	assert.Nil(t, err, "Pointer construction error")
-	assert.NotNil(t, ptr, "Pointer construction returned no instance")
-	if ptr == nil {
-		return
-	}
-	actual, err := ptr.Get(doc)
-	assert.Nil(t, err, "Pointer evaluation error")
-
-	assert.EqualValues(t, expected, actual, "Pointer: %s", pointer)
+func TestGetBool(t *testing.T) {
+	doc := getDocWithTypes()
+	p := MustConstruct("/bool")
+	assert.Equal(t, true, p.GetBool(doc))
+	p = MustConstruct("/string")
+	assert.Equal(t, false, p.GetBool(doc))
+	p = MustConstruct("/not/there")
+	assert.Equal(t, false, p.GetBool(doc))
 }
 
-func assertSetWorks(t *testing.T, pointer string) {
-	ptr, err := New(pointer)
-	assert.Nil(t, err, "Pointer construction error")
-	assert.NotNil(t, ptr, "Pointer construction returned no instance")
-	if ptr == nil {
-		return
-	}
-
-	var doc interface{}
-	json.Unmarshal([]byte(RfcDoc), &doc)
-
-	err = ptr.Set(doc, "some value")
-	assert.Nil(t, err, "Pointer evaluation error")
-
-	actual, _ := ptr.Get(doc)
-
-	assert.EqualValues(t, "some value", actual, "Pointer: %s", pointer)
+func TestGetString(t *testing.T) {
+	doc := getDocWithTypes()
+	p := MustConstruct("/string")
+	assert.Equal(t, "string", p.GetString(doc))
+	p = MustConstruct("/bool")
+	assert.Equal(t, "", p.GetString(doc))
+	p = MustConstruct("/not/there")
+	assert.Equal(t, "", p.GetString(doc))
 }
 
-func doSet(t *testing.T, pointer string, str string, val interface{}) interface{} {
-	var doc interface{}
-	json.Unmarshal([]byte(str), &doc)
-
-	ptr, err := New(pointer)
-	assert.Nil(t, err, "Pointer construction error")
-	assert.NotNil(t, ptr, "Pointer construction returned no instance")
-	if ptr == nil {
-		return nil
-	}
-	err = ptr.Set(doc, val)
-	assert.Nil(t, err, "Pointer evaluation error")
-	return doc
-}
-
-func doForce(t *testing.T, pointer string, str string, val interface{}) interface{} {
-	var doc interface{}
-	json.Unmarshal([]byte(str), &doc)
-
-	ptr, err := New(pointer)
-	assert.Nil(t, err, "Pointer construction error")
-	assert.NotNil(t, ptr, "Pointer construction returned no instance")
-	if ptr == nil {
-		return nil
-	}
-	err = ptr.Force(doc, val)
-	assert.Nil(t, err, "Pointer evaluation error")
-	return doc
+func TestGetNumber(t *testing.T) {
+	doc := getDocWithTypes()
+	p := MustConstruct("/number")
+	assert.Equal(t, 1.2, p.GetNumber(doc))
+	p = MustConstruct("/bool")
+	assert.Equal(t, 0.0, p.GetNumber(doc))
+	p = MustConstruct("/not/there")
+	assert.Equal(t, 0.0, p.GetNumber(doc))
 }
 
 func ExamplePointer_Get() {
@@ -365,4 +338,72 @@ func BenchmarkDeepForce(b *testing.B) {
 		ptr := MustConstruct(fmt.Sprintf("/foo%d/bar%d/item%d", i, i, i))
 		ptr.Set(doc, "someval")
 	}
+}
+
+func getDocWithTypes() interface{} {
+	var doc map[string]interface{}
+	json.Unmarshal([]byte(TypeDoc), &doc)
+	return doc
+}
+
+func assertPointerEvaluatesTo(t *testing.T, pointer string, doc interface{}, expected interface{}) {
+	ptr, err := New(pointer)
+	assert.Nil(t, err, "Pointer construction error")
+	assert.NotNil(t, ptr, "Pointer construction returned no instance")
+	if ptr == nil {
+		return
+	}
+	actual, err := ptr.Get(doc)
+	assert.Nil(t, err, "Pointer evaluation error")
+
+	assert.EqualValues(t, expected, actual, "Pointer: %s", pointer)
+}
+
+func assertSetWorks(t *testing.T, pointer string) {
+	ptr, err := New(pointer)
+	assert.Nil(t, err, "Pointer construction error")
+	assert.NotNil(t, ptr, "Pointer construction returned no instance")
+	if ptr == nil {
+		return
+	}
+
+	var doc interface{}
+	json.Unmarshal([]byte(RfcDoc), &doc)
+
+	err = ptr.Set(doc, "some value")
+	assert.Nil(t, err, "Pointer evaluation error")
+
+	actual, _ := ptr.Get(doc)
+
+	assert.EqualValues(t, "some value", actual, "Pointer: %s", pointer)
+}
+
+func doSet(t *testing.T, pointer string, str string, val interface{}) interface{} {
+	var doc interface{}
+	json.Unmarshal([]byte(str), &doc)
+
+	ptr, err := New(pointer)
+	assert.Nil(t, err, "Pointer construction error")
+	assert.NotNil(t, ptr, "Pointer construction returned no instance")
+	if ptr == nil {
+		return nil
+	}
+	err = ptr.Set(doc, val)
+	assert.Nil(t, err, "Pointer evaluation error")
+	return doc
+}
+
+func doForce(t *testing.T, pointer string, str string, val interface{}) interface{} {
+	var doc interface{}
+	json.Unmarshal([]byte(str), &doc)
+
+	ptr, err := New(pointer)
+	assert.Nil(t, err, "Pointer construction error")
+	assert.NotNil(t, ptr, "Pointer construction returned no instance")
+	if ptr == nil {
+		return nil
+	}
+	err = ptr.Force(doc, val)
+	assert.Nil(t, err, "Pointer evaluation error")
+	return doc
 }

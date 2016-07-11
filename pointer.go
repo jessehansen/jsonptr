@@ -72,6 +72,33 @@ func (p *Pointer) Get(document interface{}) (interface{}, error) {
 	return node, nil
 }
 
+// GetBool returns the value for the specified location in the document as a string, or false if not accessible.
+func (p *Pointer) GetBool(document interface{}) bool {
+	node, _ := p.Get(document)
+	if s, ok := node.(bool); ok {
+		return s
+	}
+	return false
+}
+
+// GetString returns the value for the specified location in the document as a string, or an empty string if not accessible.
+func (p *Pointer) GetString(document interface{}) string {
+	node, _ := p.Get(document)
+	if s, ok := node.(string); ok {
+		return s
+	}
+	return ""
+}
+
+// GetNumber returns the value for the specified location in the document as a string, or 0 if not accessible.
+func (p *Pointer) GetNumber(document interface{}) float64 {
+	node, _ := p.Get(document)
+	if f, ok := node.(float64); ok {
+		return f
+	}
+	return 0
+}
+
 /*
 Set sets the specified location in the document to the provided value,
 returning an error if the value cannot be set. Set requires all segments in
