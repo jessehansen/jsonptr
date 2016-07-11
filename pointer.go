@@ -75,8 +75,8 @@ func (p *Pointer) Get(document interface{}) (interface{}, error) {
 // GetBool returns the value for the specified location in the document as a string, or false if not accessible.
 func (p *Pointer) GetBool(document interface{}) bool {
 	node, _ := p.Get(document)
-	if s, ok := node.(bool); ok {
-		return s
+	if b, ok := node.(bool); ok {
+		return b
 	}
 	return false
 }
@@ -86,6 +86,9 @@ func (p *Pointer) GetString(document interface{}) string {
 	node, _ := p.Get(document)
 	if s, ok := node.(string); ok {
 		return s
+	}
+	if node != nil {
+		return fmt.Sprintf("%v", node)
 	}
 	return ""
 }

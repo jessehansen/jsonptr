@@ -32,7 +32,8 @@ const (
 	TypeDoc = `{
 	"string": "string",
 	"number": 1.2,
-	"bool": true
+	"bool": true,
+	"node": { "name": "val" }
 }`
 )
 
@@ -181,6 +182,8 @@ func TestGetBool(t *testing.T) {
 	assert.Equal(t, true, p.GetBool(doc))
 	p = MustConstruct("/string")
 	assert.Equal(t, false, p.GetBool(doc))
+	p = MustConstruct("/node")
+	assert.Equal(t, false, p.GetBool(doc))
 	p = MustConstruct("/not/there")
 	assert.Equal(t, false, p.GetBool(doc))
 }
@@ -190,7 +193,11 @@ func TestGetString(t *testing.T) {
 	p := MustConstruct("/string")
 	assert.Equal(t, "string", p.GetString(doc))
 	p = MustConstruct("/bool")
-	assert.Equal(t, "", p.GetString(doc))
+	assert.Equal(t, "true", p.GetString(doc))
+	p = MustConstruct("/number")
+	assert.Equal(t, "1.2", p.GetString(doc))
+	p = MustConstruct("/node")
+	assert.Equal(t, "map[name:val]", p.GetString(doc))
 	p = MustConstruct("/not/there")
 	assert.Equal(t, "", p.GetString(doc))
 }
@@ -200,6 +207,8 @@ func TestGetNumber(t *testing.T) {
 	p := MustConstruct("/number")
 	assert.Equal(t, 1.2, p.GetNumber(doc))
 	p = MustConstruct("/bool")
+	assert.Equal(t, 0.0, p.GetNumber(doc))
+	p = MustConstruct("/node")
 	assert.Equal(t, 0.0, p.GetNumber(doc))
 	p = MustConstruct("/not/there")
 	assert.Equal(t, 0.0, p.GetNumber(doc))
