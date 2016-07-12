@@ -25,11 +25,6 @@ type PointerValue struct {
 /*
 Flatten compacts the provided json document into a map[string]interface{},
 with all keys at the root level.
-
-    // Given doc is unmarshalled from { "foo": { "bar": ["baz"] } }
-    c := &jsonptr.Compactor{AllNodes: false, URIFragment: false}
-    res := c.Flatten(doc)
-    // res would be { "/foo/bar/0": "baz" }
 */
 func (c *Compactor) Flatten(document interface{}) map[string]interface{} {
 	res := map[string]interface{}{}

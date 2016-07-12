@@ -2,6 +2,7 @@ package jsonptr
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -100,4 +101,13 @@ func BenchmarkFlattenURIFragment(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		c.Flatten(doc)
 	}
+}
+
+func ExampleCompactor_Flatten() {
+	var doc interface{}
+	json.Unmarshal([]byte(`{"foo":{"bar":["baz"]}}`), &doc)
+	c := &Compactor{AllNodes: false, URIFragment: false}
+	res := c.Flatten(doc)
+	fmt.Printf("%v", res)
+	// Output: map[/foo/bar/0:baz]
 }
